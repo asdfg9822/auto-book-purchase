@@ -9,13 +9,16 @@ class Purchase extends Process {
      * 생성자
      * @param page
      */
-    constructor(page) {
+    constructor(page, phone, nId, nPw) {
         super();
 
         if(!page) {
             throw("page 객체가 없습니다.");
         }
         this.page = page;
+        this.phone = phone;
+        this.nId = nId;
+        this.nPw = nPw;
     }
 
     /**
@@ -36,8 +39,48 @@ class Purchase extends Process {
 
         // 주문 작성
         await this.writeOrder("본사");
+
+        // 구매, 구매 후 처리
+        await this.purchase();
     }
 
+    /**
+     * 구매 진행
+     * @returns {Promise.<void>}
+     */
+    async purchase() {
+        const page = this.page;
+
+        await page.click("#btnPayment");
+
+        await page.waitFor(5000);
+
+        const browser = page.browser();
+        const pages = await browser.pages();
+        const popup = pages[pages.length - 1];
+
+        // 계정 정보 입력
+        await popup.evaluate((id, pw) => {
+            document.querySelector("input[id=id]").value = id;
+            document.querySelector("input[id=pw]").value = pw;
+            return;
+        }, this.nId, this.nPw);
+
+        // 로그인
+        await popup.click("input[type=submit]");
+        await page.waitFor(3000);
+
+        // 자주 사용하는 기기 등록
+        await page.click("a.btn");
+        await page.waitFor(500);
+        await page.click(".btn_maintain a.btn");
+    }
+
+    /**
+     * 주문서 작성 (배송지, 전화번호, 소득공제 신청 등)
+     * @param addressKey
+     * @returns {Promise.<void>}
+     */
     async writeOrder(addressKey) {
         const page = this.page;
 
@@ -65,15 +108,37 @@ class Purchase extends Process {
         });
 
         // 하루 배송 선택
-        await addressLinkElementHandle.click("#rdoDelvMethodTomorrow");
+        // await addressLinkElementHandle.click("#rdoDelvMethodTomorrow");
+
+        // 현금 영수증 신청
+        await page.waitFor(500);
+        await page.click("#rdoNPay");
+        await page.waitFor(500);
+        await page.click("#rdoDeductionY");
+        await page.waitFor(500);
+        await page.click("#rdoCashRecptAppcModeMobTelNo");
+        await page.waitFor(500);
+        await page.click("#txtMobTelNo");
+        await page.keyboard.type(this.phone);
+
+        // 동의합니다(전자상거래)
+        await page.click("#chkPayAgree");
     }
 
+    /**
+     * Book Page 이동 후 카트에 담음
+     * @returns {Promise.<void>}
+     */
     async goBookPageAndAddOrder() {
         await this.goBookPageByURL("http://www.yes24.com/24/Goods/65050088?Acode=101");
         await this.plusBuyCount(2);
         await this.addCurrentBookInCart();
     }
 
+    /**
+     * 카트 페이지에서 주문 페이지로
+     * @returns {Promise.<void>}
+     */
     async goCartPageAndGoOrderPage() {
         const page = this.page;
 
@@ -147,6 +212,10 @@ class Purchase extends Process {
         }
     }
 
+    /**
+     * 현재 책을 카트에 추가한다
+     * @returns {Promise.<void>}
+     */
     async addCurrentBookInCart() {
         const page = this.page;
         await page.waitFor("#addToCartForDetail");

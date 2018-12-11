@@ -17,6 +17,6 @@ const Purchase = require('./process/purchase');
     const login = new Login(page, Config.id, Config.pw);
     await login.process();
 
-    const purchase = new Purchase(page);
+    const purchase = new Purchase(page, Config.phone, Config.nId, Config.nPw);
     await purchase.process();
 })();
