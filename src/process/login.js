@@ -2,7 +2,9 @@
  * Created by JongHyeok Choi on 10/12/2018.
  */
 
-class Login {
+const Process = require('./process');
+
+class Login extends Process {
     /**
      * 로그인 객체 생성자
      * @param page
@@ -10,6 +12,8 @@ class Login {
      * @param pw
      */
     constructor(page, id, pw) {
+        super();
+
         if(!page || !id || !pw) {
             throw("page, id, pw가 없습니다.");
         }
@@ -24,7 +28,7 @@ class Login {
      * 로그인 작업
      * @returns {Promise.<void>}
      */
-    async loginProcess() {
+    async process() {
         const page = this.page;
         await page.goto(this.loginPage);
 

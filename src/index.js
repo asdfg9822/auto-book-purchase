@@ -4,8 +4,8 @@
 
 const puppeteer = require('puppeteer');
 const Config = require('./config');
-const Login = require('./login/login');
-const Buy = require('./buy/buy');
+const Login = require('./process/login');
+const Purchase = require('./process/purchase');
 
 (async () => {
     const browser = await puppeteer.launch({
@@ -15,14 +15,8 @@ const Buy = require('./buy/buy');
     const page = await browser.newPage();
 
     const login = new Login(page, Config.id, Config.pw);
-    await login.loginProcess();
+    await login.process();
 
-    const buy = new Buy(page);
-    await buy.goBookPageByURL("http://www.yes24.com/24/Goods/65050088?Acode=101");
-    await buy.plusBuyCount(2);
-    await buy.addCurrentBookInCart();
-    await buy.goCartPage();
-
-    await page.waitFor(3000);
-    await buy.clearCart();
+    const purchase = new Purchase(page);
+    await purchase.process();
 })();
