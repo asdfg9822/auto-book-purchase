@@ -9,13 +9,14 @@ class Purchase extends Process {
      * 생성자
      * @param page
      */
-    constructor(page, phone, nId, nPw) {
+    constructor(page, orderGroup, phone, nId, nPw) {
         super();
 
         if(!page) {
             throw("page 객체가 없습니다.");
         }
         this.page = page;
+        this.orderGroup = orderGroup;
         this.phone = phone;
         this.nId = nId;
         this.nPw = nPw;
