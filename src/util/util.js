@@ -61,6 +61,12 @@ const mapping = [
             return str.trim();
         }
     },
+    {
+        name: "addressKey",
+        convert: function (str) {
+            return str.replace(/ /g, "");
+        }
+    },
 ];
 
 class Util {
@@ -80,12 +86,10 @@ class Util {
     static groupByFieldValue(objs, field) {
         const resultObj = {};
         objs.forEach((obj) => {
-            if(resultObj.hasOwnProperty(obj[field])) {
-                resultObj[obj[field]].push(obj);
-            } else {
+            if(!resultObj.hasOwnProperty(obj[field])) {
                 resultObj[obj[field]] = [];
-                resultObj[obj[field]].push(obj);
             }
+            resultObj[obj[field]].push(obj);
         });
 
         return resultObj;
@@ -100,12 +104,16 @@ class Util {
     static groupByFieldArrValue(objs, field) {
         const resultObj = {};
         objs.forEach((obj) => {
-            if(resultObj.hasOwnProperty(obj[field])) {
-                resultObj[obj[field]].push(obj);
-            } else {
-                resultObj[obj[field]] = [];
-                resultObj[obj[field]].push(obj);
-            }
+            var fieldValues = obj[field];
+            fieldValues.forEach((value) => {
+                if(value) {
+                    if(!(value in resultObj)) {
+                        resultObj[value] = [];
+                    }
+
+                    resultObj[value].push(obj);
+                }
+            });
         });
 
         return resultObj;

@@ -9,13 +9,14 @@ class Purchase extends Process {
      * 생성자
      * @param page
      */
-    constructor(page, orderGroup, phone, nId, nPw) {
+    constructor(page, key, orderGroup, phone, nId, nPw) {
         super();
 
         if(!page) {
             throw("page 객체가 없습니다.");
         }
         this.page = page;
+        this.key = key;
         this.orderGroup = orderGroup;
         this.phone = phone;
         this.nId = nId;
@@ -33,16 +34,13 @@ class Purchase extends Process {
         await this.goCartPageAndClearCart();
 
         // 책 페이지 이동 -> 주문 추가
-        await this.goBookPageAndAddOrder();
+        for(let bookLink in this.orderGroup) {
+            let books = this.orderGroup[bookLink];
+            await this.goBookPageAndAddOrder(bookLink, books.length - 1);
+        }
 
         // 카트 페이지 -> (옵션) 선물 페이지 -> 주문 페이지
         await this.goCartPageAndGoOrderPage();
-
-        // 주문 작성
-        await this.writeOrder("본사");
-
-        // 구매, 구매 후 처리
-        await this.purchase();
     }
 
     /**
@@ -69,12 +67,20 @@ class Purchase extends Process {
 
         // 로그인
         await popup.click("input[type=submit]");
-        await page.waitFor(3000);
+        await popup.waitFor(3000);
 
         // 자주 사용하는 기기 등록
-        await page.click("a.btn");
-        await page.waitFor(500);
-        await page.click(".btn_maintain a.btn");
+        await popup.waitFor("a.btn");
+        await popup.click("a.btn");
+        await popup.waitFor(500);
+        await popup.click(".btn_maintain a.btn");
+
+        await popup.waitFor(3000);
+        await popup.click("a.btn");
+
+        await popup.waitFor(3000);
+        await popup.click("#btn-payAgreeAll");
+
     }
 
     /**
@@ -112,7 +118,8 @@ class Purchase extends Process {
         // await addressLinkElementHandle.click("#rdoDelvMethodTomorrow");
 
         // 현금 영수증 신청
-        await page.waitFor(500);
+        await page.waitFor(1000);
+        await page.waitFor("#rdoNPay");
         await page.click("#rdoNPay");
         await page.waitFor(500);
         await page.click("#rdoDeductionY");
@@ -128,11 +135,13 @@ class Purchase extends Process {
 
     /**
      * Book Page 이동 후 카트에 담음
+     * @param bookURL "http://www.yes24.com/24/Goods/65050088?Acode=101"
+     * @param purchaseCount 구매 카운트
      * @returns {Promise.<void>}
      */
-    async goBookPageAndAddOrder() {
-        await this.goBookPageByURL("http://www.yes24.com/24/Goods/65050088?Acode=101");
-        await this.plusBuyCount(2);
+    async goBookPageAndAddOrder(bookURL, purchaseCount) {
+        await this.goBookPageByURL(bookURL);
+        await this.plusBuyCount(purchaseCount);
         await this.addCurrentBookInCart();
     }
 
@@ -141,15 +150,16 @@ class Purchase extends Process {
      * @returns {Promise.<void>}
      */
     async goCartPageAndGoOrderPage() {
+        const me = this;
         const page = this.page;
 
         await this.goCartPage();
         await page.waitFor(1000);
 
-        page.waitFor("#btnOrderCart");
-        page.click("#btnOrderCart");
-
-        page.waitFor(2000);
+        await page.waitFor("#btnOrderCart");
+        await page.click("#btnOrderCart");
+        //
+        await page.waitFor(2000);
 
         const isOrderGiftPage = page.evaluate(() => {
             return location.href.indexOf("OrderGift/OrderGift") > -1;
@@ -168,6 +178,12 @@ class Purchase extends Process {
                 await page.removeListener('dialog', dialogOk);
                 dialog.accept();
                 await page.waitFor(1000);
+
+                // 주문 작성
+                await me.writeOrder(me.key);
+
+                // 구매, 구매 후 처리
+                await me.purchase();
             }
             page.on('dialog', dialogOk);
 
@@ -235,9 +251,11 @@ class Purchase extends Process {
         await this.goCartPage();
         await page.waitFor(1000);
 
-        const ordlst = await page.$$(".bw.ordlst");
-        for(var i=0; i<ordlst.length; i++) {
-            await ordlst[i].click();
+        let ordlst = await page.$(".bw.ordlst");
+        while(ordlst) {
+            await ordlst.click();
+            await page.waitFor(1000);
+            ordlst = await page.$(".bw.ordlst");
         }
     }
 }
